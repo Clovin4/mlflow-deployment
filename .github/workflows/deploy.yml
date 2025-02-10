@@ -1,0 +1,33 @@
+name: Deploy to DigitalOcean
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DO_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.DO_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to DigitalOcean
+        run: |
+          ssh root@${{ secrets.DO_HOST }} << 'EOF'
+            cd /root
+            if [ ! -d "mlflow-deployment" ]; then
+              git clone https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO.git mlflow-deployment
+            fi
+            cd mlflow-deployment
+            git pull origin main
+            docker stack deploy -c docker-stack.yml mlflow
+          EOF

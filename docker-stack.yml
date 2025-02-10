@@ -5,13 +5,23 @@ services:
       - "--api.insecure=true"
       - "--providers.docker=true"
       - "--entrypoints.web.address=:80"
+      - "--entrypoints.mlflow.address=:5000"
+      - "--entrypoints.minio.address=:9000"
+      - "--entrypoints.postgres.address=:5432"
     ports:
       - "80:80"
-      - "8080:8080"
+      - "5000:5000"
+      - "9000:9000"
+      - "9001:9001"
     networks:
       - mlflow_network
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
 
   postgres:
     image: postgres:13
@@ -23,6 +33,9 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - mlflow_network
+    deploy:
+      restart_policy:
+        condition: on-failure
 
   minio:
     image: minio/minio
@@ -37,6 +50,9 @@ services:
       - minio_data:/data
     networks:
       - mlflow_network
+    deploy:
+      restart_policy:
+        condition: on-failure
 
   mlflow:
     restart: always
@@ -52,13 +68,16 @@ services:
       AWS_ACCESS_KEY_ID: minioadmin
       AWS_SECRET_ACCESS_KEY: minioadmin
       MLFLOW_S3_ENDPOINT_URL: http://minio:9000
-    ports:
-      - "5000:5000"
     networks:
       - mlflow_network
     depends_on:
       - postgres
       - minio
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.mlflow.rule=Host(`mlflow.your-domain.com`)"
+        - "traefik.http.services.mlflow.loadbalancer.server.port=5000"
 
 volumes:
   postgres_data:
