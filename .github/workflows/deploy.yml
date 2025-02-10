@@ -25,7 +25,7 @@ jobs:
           ssh root@${{ secrets.DO_HOST }} << 'EOF'
             cd /root
             if [ ! -d "mlflow-deployment" ]; then
-              git clone https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO.git mlflow-deployment
+              git clone https://github.com/Clovin4/mlflow-deployment.git mlflow-deployment
             fi
             cd mlflow-deployment
             git pull origin main
